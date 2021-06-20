@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"/>
+  </head>
+  <body>
+    <div id="hours-input-container" class="mb-2">
+
+    </div>
+    <div id="months-container" class="mb-2">
+
+    </div>
+
+    <div id="years-container" class="mb-2">
+
+    </div>
+    <label id="total-classes" class="mb-2 fs-2" style="display:block;"></label>
+    <label>Select start date: </label>
+    <input id="start-date" type="date" class="mb-2">
+    <div id="next-thirty-days">
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+    crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+    <script>
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const months = {
+        january: {
+          number: 1
+        },
+        february: {
+          number: 2
+        },
+        march: {
+          number: 3
+        },
+        april: {
+          number: 4
+        },
+        may: {
+          number: 5
+        },
+        june: {
+          number: 6
+        },
+        july: {
+          number: 7
+        },
+        august: {
+          number: 8
+        },
+        september: {
+          number: 9
+        },
+        october: {
+          number: 10
+        },
+        november: {
+          number: 11
+        },
+        december: {
+          number: 12
+        } 
+      };
+      const years = ['2021', '2022'];
+
+      let currentMonth = moment().format('MMMM').toLowerCase();
+      let selectedMonth = currentMonth;
+      let selectedYear = years[0];
+
+      const getStartDateTime = () => {
+        let date = moment($('#start-date').val(), 'YYYY-MM-DD');
+        return date.toDate().getTime();
+      }
+
+      const calculateForNextThirtyDays = (startDate) => {
+        $('#next-thirty-days').empty();
+        let _date = typeof startDate === 'undefined' ? moment() : moment(startDate);
+        let _dateTime = typeof startDate === 'undefined' ? moment() : moment(startDate);
+        let numberOfDays = {};
+        for (let dateCount = 1; dateCount <= 30; dateCount++) {
+          numberOfDays = {};
+          for (let count = 1; count <= 30; count++) {
+            let day = _dateTime.format('dddd').toLowerCase();
+            numberOfDays[day] = typeof numberOfDays[day] === 'undefined' ? 1 : numberOfDays[day] += 1;
+            _dateTime = _dateTime.add(1, 'days');
+          }
+          let totalHours = 0;
+          Object.keys(numberOfDays).forEach(day => {
+            let activeHours = $(`#${day}`).val();
+            activeHours = activeHours === '' ? 0 : activeHours;
+            totalHours += activeHours * numberOfDays[day];
+          });
+          let color = 'text-success';
+          if (totalHours < 120) {
+            color = 'text-danger';
+          }
+          const entry = document.createElement('label');
+          entry.innerHTML = `${_date.format('DD MMMM YYYY')} to ${_dateTime.format('DD MMMM YYYY')} = ${totalHours}`;
+          entry.className = color + ' mb-2';
+          entry.style.display = 'block';
+          $('#next-thirty-days').append(entry);
+          _date = _date.add(1, 'days');
+          _dateTime = moment(_date.toDate().getTime());
+        }
+      }
+
+      const calculateClassHours = () => {
+        const daysInMonth = moment(`${months[selectedMonth].number}-${selectedYear}`, 'M-YYYY').daysInMonth();
+        const currentDate = currentMonth === selectedMonth ? parseInt(moment().format('D')) : 1;
+
+        const numberOfDays = {};
+
+        for (let date = currentDate; date <= daysInMonth; date++) {
+          let day = moment(`${date}-${months[selectedMonth].number}-${selectedYear}`, 'D-M-YYYY').format('dddd').toLowerCase();
+          typeof numberOfDays[day] === 'undefined' ? numberOfDays[day] = 1 : numberOfDays[day] += 1;
+        }
+
+        let totalHours = 0;
+
+        Object.keys(numberOfDays).forEach(day => {
+          let activeHours = document.getElementById(day).value;
+          activeHours = activeHours === '' ? 0 : activeHours;
+          totalHours += activeHours * numberOfDays[day];
+        });
+
+        $('#total-classes').text(`Total Hours: ${totalHours}`);
+      }
+
+      const addHoursInputForDay = (day) => {
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = day;
+        input.placeholder = day;
+        input.className = 'hour-input form-control mb-2';
+
+        input.addEventListener('keyup', () => {
+          calculateClassHours();
+          calculateForNextThirtyDays(getStartDateTime());
+        });
+
+        $('#hours-input-container').append(input);
+
+      }
+
+      const addMonthButtons = (month) => {
+
+        const monthButton = document.createElement('button');
+        monthButton.type = 'button';
+        monthButton.id = month;
+        monthButton.className = 'btn btn-primary me-md-2 month-button';
+        monthButton.innerText = month;
+
+        if (selectedMonth === month) {
+          $(monthButton).addClass('btn-dark');
+        }
+
+        monthButton.addEventListener('click', () => {
+          $(`#${selectedMonth}`).removeClass('btn-dark');
+          selectedMonth = month;
+          $(monthButton).addClass('btn-dark');
+          calculateClassHours();
+        });
+
+        $('#months-container').append(monthButton);
+
+      }
+
+      const addYearButtons = (year) => {
+
+        const yearButton = document.createElement('button');
+        yearButton.type = 'button';
+        yearButton.id = year;
+        yearButton.className = 'btn btn-primary me-md-2 year-button';
+        yearButton.innerText = year;
+
+        if (selectedYear === year) {
+          $(yearButton).addClass('btn-dark');
+        }
+
+        yearButton.addEventListener('click', () => {
+          $(`#${selectedYear}`).removeClass('btn-dark');
+          selectedYear = year;
+          $(yearButton).addClass('btn-dark');
+          calculateClassHours();
+        });
+
+        $('#years-container').append(yearButton);
+
+      }
+
+      days.forEach(day => addHoursInputForDay(day));
+      Object.keys(months).forEach(month => addMonthButtons(month));
+      years.forEach(year => addYearButtons(year));
+
+      $('#start-date').change((event) => {
+        let date = moment(event.target.value, 'YYYY-MM-DD');
+        calculateForNextThirtyDays(date.toDate().getTime());
+      });
+
+      calculateClassHours();
+      calculateForNextThirtyDays();
+    </script>
+  </body>
+</html>
